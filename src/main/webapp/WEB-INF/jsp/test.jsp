@@ -12,14 +12,13 @@
 
 </head>
 <body>
-<h2>Edit form in expanded row details</h2>
-<p>Click the expand button to expand a detail form.</p>
+<h2>Basic CRUD Application</h2>
+<p>Click the buttons on datagrid toolbar to do crud actions.</p>
 
-
-<table id="dg" title="My Users" style="width:700px;height:250px"
-       url="${pageContext.request.contextPath }/hellojson"
+<table id="dg" title="My Users" class="easyui-datagrid" style="width:700px;height:250px"
+       url="/hellojson"
        toolbar="#toolbar" pagination="true"
-       fitColumns="true" singleSelect="true">
+       rownumbers="true" fitColumns="true" singleSelect="true">
     <thead>
     <tr>
         <th field="firstname" width="50">First Name</th>
@@ -30,91 +29,86 @@
     </thead>
 </table>
 <div id="toolbar">
-    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="newItem()">New</a>
-    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="destroyItem()">Destroy</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="newUser()">New User</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="editUser()">Edit User</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="destroyUser()">Remove User</a>
+</div>
+
+<div id="dlg" class="easyui-dialog" style="width:400px" data-options="closed:true,modal:true,border:'thin',buttons:'#dlg-buttons'">
+    <form id="fm" method="post" novalidate style="margin:0;padding:20px 50px">
+        <h3>User Information</h3>
+        <div style="margin-bottom:10px">
+            <input name="firstname" class="easyui-textbox" required="true" label="First Name:" style="width:100%">
+        </div>
+        <div style="margin-bottom:10px">
+            <input name="lastname" class="easyui-textbox" required="true" label="Last Name:" style="width:100%">
+        </div>
+        <div style="margin-bottom:10px">
+            <input name="phone" class="easyui-textbox" required="true" label="Phone:" style="width:100%">
+        </div>
+        <div style="margin-bottom:10px">
+            <input name="email" class="easyui-textbox" required="true" validType="email" label="Email:" style="width:100%">
+        </div>
+    </form>
+</div>
+<div id="dlg-buttons">
+    <a href="javascript:void(0)" class="easyui-linkbutton c6" iconCls="icon-ok" onclick="saveUser()" style="width:90px">Save</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="javascript:$('#dlg').dialog('close')" style="width:90px">Cancel</a>
 </div>
 <script type="text/javascript">
-    $(function(){
-        $('#dg').datagrid({
-           //view: detailview,
-            detailFormatter:function(index,row){
-                return '<div class="ddv"></div>';
-            },
-            onExpandRow: function(index,row){
-                var ddv = $(this).datagrid('getRowDetail',index).find('div.ddv');
-                ddv.panel({
-                    border:false,
-                    cache:true,
-                    href:'show_form.php?index='+index,
-                    onLoad:function(){
-                        $('#dg').datagrid('fixDetailRowHeight',index);
-                        $('#dg').datagrid('selectRow',index);
-                        $('#dg').datagrid('getRowDetail',index).find('form').form('load',row);
-                    }
-                });
-                $('#dg').datagrid('fixDetailRowHeight',index);
-            }
-        });
-    });
-    function saveItem(index){
-        var row = $('#dg').datagrid('getRows')[index];
-        var url = row.isNewRecord ? 'save_user.php' : 'update_user.php?id='+row.id;
-        $('#dg').datagrid('getRowDetail',index).find('form').form('submit',{
+    var url;
+    function newUser(){
+        $('#dlg').dialog('open').dialog('center').dialog('setTitle','New User');
+        $('#fm').form('clear');
+        url = 'save_user.php';
+    }
+    function editUser(){
+        var row = $('#dg').datagrid('getSelected');
+        if (row){
+            $('#dlg').dialog('open').dialog('center').dialog('setTitle','Edit User');
+            $('#fm').form('load',row);
+            url = 'update_user.php?id='+row.id;
+        }
+    }
+    function saveUser(){
+        $('#fm').form('submit',{
             url: url,
             onSubmit: function(){
                 return $(this).form('validate');
             },
-            success: function(data){
-                data = eval('('+data+')');
-                data.isNewRecord = false;
-                $('#dg').datagrid('collapseRow',index);
-                $('#dg').datagrid('updateRow',{
-                    index: index,
-                    row: data
-                });
+            success: function(result){
+                var result = eval('('+result+')');
+                if (result.errorMsg){
+                    $.messager.show({
+                        title: 'Error',
+                        msg: result.errorMsg
+                    });
+                } else {
+                    $('#dlg').dialog('close');        // close the dialog
+                    $('#dg').datagrid('reload');    // reload the user data
+                }
             }
         });
     }
-    function cancelItem(index){
-        var row = $('#dg').datagrid('getRows')[index];
-        if (row.isNewRecord){
-            $('#dg').datagrid('deleteRow',index);
-        } else {
-            $('#dg').datagrid('collapseRow',index);
-        }
-    }
-    function destroyItem(){
+    function destroyUser(){
         var row = $('#dg').datagrid('getSelected');
         if (row){
-            $.messager.confirm('Confirm','Are you sure you want to remove this user?',function(r){
+            $.messager.confirm('Confirm','Are you sure you want to destroy this user?',function(r){
                 if (r){
-                    var index = $('#dg').datagrid('getRowIndex',row);
-                    $.post('destroy_user.php',{id:row.id},function(){
-                        $('#dg').datagrid('deleteRow',index);
-                    });
+                    $.post('destroy_user.php',{id:row.id},function(result){
+                        if (result.success){
+                            $('#dg').datagrid('reload');    // reload the user data
+                        } else {
+                            $.messager.show({    // show error message
+                                title: 'Error',
+                                msg: result.errorMsg
+                            });
+                        }
+                    },'json');
                 }
             });
         }
     }
-    function newItem(){
-        $('#dg').datagrid('appendRow',{isNewRecord:true});
-        var index = $('#dg').datagrid('getRows').length - 1;
-        $('#dg').datagrid('expandRow', index);
-        $('#dg').datagrid('selectRow', index);
-    }
 </script>
-<style type="text/css">
-    form{
-        margin:0;
-        padding:0;
-    }
-    .dv-table td{
-        border:0;
-    }
-    .dv-table input{
-        border:1px solid #ccc;
-    }
-</style>
-
 </body>
 </html>
