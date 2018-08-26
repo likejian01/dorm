@@ -1,0 +1,25 @@
+
+.query_form>div{
+    padding-bottom: 5px;
+    padding-top: 5px;
+}
+.query_form_div{
+    width: 250px;
+    display: inline-block;
+    padding: 10px;
+}
+.query_form_div_label{
+    width:100px;
+    display: inline-block;
+}
+.query_form_div_label>label{
+    float: right;
+    margin-right: 10px;
+}
+.query_form_btn_div{
+    margin-left: 36%;
+}
+.query_form_btn_div>a{
+    margin-left: 20px;
+
+}
